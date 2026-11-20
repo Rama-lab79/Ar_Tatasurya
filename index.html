@@ -1,16 +1,13 @@
 <!doctype html>
 <html>
   <head>
-    <title>AR Tata Surya</title>
+    <title>Tes Marker</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
     <style>
       body {
         margin: 0;
         overflow: hidden;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #121212;
       }
       #status {
         position: fixed;
@@ -23,14 +20,12 @@
         border-radius: 50px;
         z-index: 999;
         font-size: 13px;
-        text-align: center;
-        pointer-events: none;
+        font-family: sans-serif;
       }
     </style>
   </head>
-
   <body>
-    <div id="status">Memuat model...</div>
+    <div id="status">Arahkan kamera ke marker Hiro</div>
 
     <a-scene
       embedded
@@ -39,92 +34,21 @@
       vr-mode-ui="enabled: false"
     >
       <a-entity light="type: ambient; intensity: 2.0;"></a-entity>
-
       <a-marker preset="hiro" id="marker-hiro">
-        <a-entity id="group-model">
-          <a-entity id="model" gltf-model="url(./tatasurya.glb)"></a-entity>
-        </a-entity>
+        <a-box position="0 0.5 0" color="red" scale="1 1 1"></a-box>
       </a-marker>
       <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-      var statusEl = document.getElementById("status");
-      var group = document.getElementById("group-model");
-      var model = document.getElementById("model");
-      var marker = document.getElementById("marker-hiro");
-      var modelOk = false;
-
-      // Model dimuat -> ukuran dan posisi diatur otomatis
-      model.addEventListener("model-loaded", function () {
-        var obj = model.getObject3D("mesh");
-        var box = new THREE.Box3().setFromObject(obj);
-        var size = box.getSize(new THREE.Vector3());
-        var center = box.getCenter(new THREE.Vector3());
-        var k = 1 / Math.max(size.x, size.y, size.z);
-        model.object3D.scale.set(k, k, k);
-        model.object3D.position.set(
-          -center.x * k,
-          -center.y * k,
-          -center.z * k,
-        );
-        modelOk = true;
-        statusEl.innerText = "Model dimuat. Arahkan kamera ke marker Hiro";
+      var s = document.getElementById("status");
+      var m = document.getElementById("marker-hiro");
+      m.addEventListener("markerFound", function () {
+        s.innerText = "MARKER TERDETEKSI";
       });
-
-      model.addEventListener("model-error", function () {
-        statusEl.innerText =
-          "Model GAGAL dimuat. Cek file tatasurya.glb di GitHub";
-        statusEl.style.background = "rgba(200, 0, 0, 0.8)";
+      m.addEventListener("markerLost", function () {
+        s.innerText = "Arahkan kamera ke marker Hiro";
       });
-
-      marker.addEventListener("markerFound", function () {
-        statusEl.innerText = modelOk
-          ? "Marker terdeteksi. Geser layar untuk memutar"
-          : "Marker terdeteksi, model belum dimuat...";
-      });
-      marker.addEventListener("markerLost", function () {
-        statusEl.innerText = "Arahkan kamera ke marker Hiro";
-      });
-
-      // Geser jari untuk memutar model dari berbagai sudut
-      var dragging = false,
-        lastX = 0,
-        lastY = 0;
-      function mulai(x, y) {
-        dragging = true;
-        lastX = x;
-        lastY = y;
-      }
-      function geser(x, y) {
-        if (!dragging) return;
-        var rot = group.getAttribute("rotation");
-        group.setAttribute("rotation", {
-          x: rot.x + (y - lastY) * 0.5,
-          y: rot.y + (x - lastX) * 0.5,
-          z: rot.z,
-        });
-        lastX = x;
-        lastY = y;
-      }
-      function selesai() {
-        dragging = false;
-      }
-
-      window.addEventListener("touchstart", function (e) {
-        mulai(e.touches[0].clientX, e.touches[0].clientY);
-      });
-      window.addEventListener("touchmove", function (e) {
-        geser(e.touches[0].clientX, e.touches[0].clientY);
-      });
-      window.addEventListener("touchend", selesai);
-      window.addEventListener("mousedown", function (e) {
-        mulai(e.clientX, e.clientY);
-      });
-      window.addEventListener("mousemove", function (e) {
-        geser(e.clientX, e.clientY);
-      });
-      window.addEventListener("mouseup", selesai);
     </script>
   </body>
 </html>
