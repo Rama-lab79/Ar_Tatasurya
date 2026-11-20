@@ -1,6 +1,11 @@
 <!doctype html>
 <html>
   <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
     <title>AR Tata Surya</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -12,30 +17,26 @@
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background-color: #121212;
       }
-      .top-bar {
+      #status {
         position: fixed;
         top: 20px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.6);
         color: white;
-        padding: 8px 25px;
+        padding: 8px 20px;
         border-radius: 50px;
         z-index: 999;
         font-size: 13px;
         text-align: center;
         pointer-events: none;
+        max-width: 85%;
       }
     </style>
   </head>
 
   <body>
-    <div class="top-bar">
-      Arahkan kamera ke marker Hiro, lalu geser layar untuk melihat dari
-      berbagai sudut
-    </div>
+    <div id="status">Memuat model...</div>
 
     <a-scene
       embedded
@@ -49,13 +50,10 @@
         position="1 3 2"
       ></a-entity>
 
-      <a-marker preset="hiro">
-        <!-- Ganti nama file GLB di bawah ini. Ubah scale jika model terlalu besar/kecil -->
-        <a-entity id="group-model" scale="0.08 0.08 0.08" rotation="0 0 0">
-          <a-entity
-            gltf-model="url(./tatasurya.glb)"
-            position="0 0 0"
-          ></a-entity>
+      <a-marker preset="hiro" id="marker-hiro">
+        <a-entity id="group-model">
+          <!-- Ganti nama file GLB di bawah ini jika perlu -->
+          <a-entity id="model" gltf-model="url(./tatasurya.glb)"></a-entity>
         </a-entity>
       </a-marker>
 
@@ -63,8 +61,48 @@
     </a-scene>
 
     <script>
-      // Geser jari (atau mouse) untuk memutar model dari berbagai sudut
+      var statusEl = document.getElementById("status");
       var group = document.getElementById("group-model");
+      var model = document.getElementById("model");
+      var marker = document.getElementById("marker-hiro");
+      var modelOk = false;
+
+      // 1. Model selesai dimuat -> otomatis diatur ukuran & posisinya
+      model.addEventListener("model-loaded", function () {
+        var obj = model.getObject3D("mesh");
+        var box = new THREE.Box3().setFromObject(obj);
+        var size = box.getSize(new THREE.Vector3());
+        var center = box.getCenter(new THREE.Vector3());
+        var maxDim = Math.max(size.x, size.y, size.z);
+        var k = 1 / maxDim; // ukuran model dibuat sekitar 1 satuan (selebar marker)
+        model.object3D.scale.set(k, k, k);
+        model.object3D.position.set(
+          -center.x * k,
+          -center.y * k,
+          -center.z * k,
+        );
+        modelOk = true;
+        statusEl.innerText = "Model dimuat. Arahkan kamera ke marker Hiro";
+      });
+
+      // 2. Model gagal dimuat
+      model.addEventListener("model-error", function () {
+        statusEl.innerText =
+          "Model GAGAL dimuat. Cek file tatasurya.glb di GitHub";
+        statusEl.style.background = "rgba(200, 0, 0, 0.8)";
+      });
+
+      // 3. Status marker
+      marker.addEventListener("markerFound", function () {
+        statusEl.innerText = modelOk
+          ? "Marker terdeteksi. Geser layar untuk memutar"
+          : "Marker terdeteksi, model belum dimuat...";
+      });
+      marker.addEventListener("markerLost", function () {
+        statusEl.innerText = "Arahkan kamera ke marker Hiro";
+      });
+
+      // 4. Geser jari (atau mouse) untuk memutar model dari berbagai sudut
       var dragging = false,
         lastX = 0,
         lastY = 0;
